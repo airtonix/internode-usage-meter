@@ -4,13 +4,15 @@ import os, sys, re
 from optparse import OptionParser
 import logging
 import logging.config
+import cairo, math, random
+import cairoplot
 
 class Poller:
 	server_url = "https://customer-webtools-api.internode.on.net/cgi-bin/padsl-usage"
 	pattern = r"(?P<used>[\d]+\.[\d]+)\ (?P<quota>[\d]+)\ (?P<rollover_date>[\d]{1,2}\/[\d]{1,2}\/[\d]{2,4})\ (?P<extra_cost>[\d]+\.[\d]+)"
 	csv_header = "Timestamp, Request Time, Used, Quota, Rollover Date, Extra Costs\n"
 	logging_format = "%(created)f, %(relativeCreated)d, %(message)s"
-	row_format="%(used)s, %(used)s, %(rollover_date)s, %(extra_cost)s"
+	row_format="%(used)s, %(quota)s, %(rollover_date)s, %(extra_cost)s"
 
 	def __init__(self, options):
 		self.options = options
@@ -74,12 +76,27 @@ class Poller:
 	def generate_graph(self):
 		if self.options.graph_file and os.path.exists(self.logfilepath):
 			log_file = open(self.logfilepath,"r")
-			log_file_data = []
 			log_file_lines = log_file.read().split("\n")
 			log_file_lines.pop(0)
-			for line in log_file_lines:
-				log_file_data.append( line.split(",") )
-			print log_file_data
+			log_file_lines.pop(-1)
+			log_file_data = [ line.split(",") for line in log_file_lines ]
+			vectors = []
+			quota_ceiling = int(log_file_data[-1][3])
+
+			for row in log_file_data :
+				if isinstance(row,list) and len(row) >= 6:
+					vectors.append( float(row[2]) )
+
+#			colors = [ (1,0.5,0.5), (1,0.7,0), (1,1,0) ]
+
+#			cairoplot.dot_line_plot(
+#				"graph.svg",vectors,800, 600,
+#				border = 50,
+#				background = "black",
+#				y_bounds=(0,quota_ceiling),
+#				axis = False, grid = False,
+#				series_colors = colors
+#			)
 
 
 if __name__ == "__main__" :
